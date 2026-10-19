@@ -1,0 +1,16 @@
+# Netlify の設定ファイル
+# 本番: `npm run build` で dist を公開し、netlify/functions をサーバー側関数として配置
+# 開発: `npm run dev:netlify` で Vite と関数をまとめて http://localhost:8888 で起動
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+
+[dev]
+  framework = "#custom"
+  command = "npm run dev"
+  targetPort = 5173
+  port = 8888
