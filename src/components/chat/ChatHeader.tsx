@@ -1,7 +1,8 @@
-import { Compass, History, Sparkles, SquarePen } from 'lucide-react';
+import { Compass, History, ListChecks, Sparkles, SquarePen } from 'lucide-react';
 
 interface ChatHeaderProps {
   onOpenHistory: () => void;
+  onOpenPackingList: () => void;
   onNewChat: () => void;
   /** AIの返答待ちの間は「新しい会話」を押せないようにする */
   disabled?: boolean;
@@ -11,7 +12,7 @@ const actionButtonClass =
   'inline-flex h-9 items-center gap-1.5 rounded-lg border border-ocean-100 bg-white px-2.5 text-xs font-medium text-ocean-700 transition hover:border-ocean-300 hover:bg-ocean-50 disabled:cursor-not-allowed disabled:opacity-50';
 
 // アプリのヘッダー部分
-export function ChatHeader({ onOpenHistory, onNewChat, disabled }: ChatHeaderProps) {
+export function ChatHeader({ onOpenHistory, onOpenPackingList, onNewChat, disabled }: ChatHeaderProps) {
   return (
     <header className="sticky top-0 z-10 border-b border-ocean-100/60 bg-white/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3 sm:px-6">
@@ -36,6 +37,15 @@ export function ChatHeader({ onOpenHistory, onNewChat, disabled }: ChatHeaderPro
           <button type="button" onClick={onOpenHistory} aria-label="会話履歴を開く" className={actionButtonClass}>
             <History size={16} />
             <span className="hidden sm:inline">履歴</span>
+          </button>
+          <button
+            type="button"
+            onClick={onOpenPackingList}
+            aria-label="持ち物チェックリストを開く"
+            className={actionButtonClass}
+          >
+            <ListChecks size={16} />
+            <span className="hidden sm:inline">持ち物</span>
           </button>
           <button
             type="button"

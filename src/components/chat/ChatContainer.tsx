@@ -14,6 +14,7 @@ import { ChatInputForm } from './ChatInputForm';
 import { ChatHeader } from './ChatHeader';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
 import { PlanConditionsForm } from './PlanConditionsForm';
+import { PackingListPanel } from './PackingListPanel';
 
 interface ChatContainerProps {
   // 後から Dify 連携済みのサービスを差し込めるようにしておく
@@ -40,6 +41,7 @@ export function ChatContainer({ chatService = defaultChatService }: ChatContaine
   const [isSending, setIsSending] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isPlanFormOpen, setIsPlanFormOpen] = useState(false);
+  const [isPackingListOpen, setIsPackingListOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const activeSession =
@@ -169,6 +171,7 @@ export function ChatContainer({ chatService = defaultChatService }: ChatContaine
 
   const closeHistory = useCallback(() => setIsHistoryOpen(false), []);
   const closePlanForm = useCallback(() => setIsPlanFormOpen(false), []);
+  const closePackingList = useCallback(() => setIsPackingListOpen(false), []);
 
   // 条件フォームの送信：初回はプラン作成、前回の条件があれば変更点を添えて再提案を依頼する
   // 送信は通常のチャットと同じ handleSend を通すので、表示・保存・Dify との通信は共通
@@ -190,6 +193,7 @@ export function ChatContainer({ chatService = defaultChatService }: ChatContaine
     <div className="mx-auto flex h-screen max-w-3xl flex-col bg-gradient-to-b from-ocean-50/40 via-white to-white">
       <ChatHeader
         onOpenHistory={() => setIsHistoryOpen(true)}
+        onOpenPackingList={() => setIsPackingListOpen(true)}
         onNewChat={handleNewChat}
         disabled={isSending}
       />
@@ -249,6 +253,8 @@ export function ChatContainer({ chatService = defaultChatService }: ChatContaine
         onClose={closePlanForm}
         onSubmit={handlePlanSubmit}
       />
+
+      <PackingListPanel open={isPackingListOpen} onClose={closePackingList} />
     </div>
   );
 }
