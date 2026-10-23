@@ -72,13 +72,13 @@ async function postChat(request: ChatApiRequest): Promise<ChatApiResponse> {
 }
 
 // Dify と連携するチャットサービスを作成
-// 会話の継続に必要な conversation_id はこのサービスの中で保持する
+// 会話の継続に必要な conversation_id は画面側で会話ごとに保持し、送信のたびに受け取る
+// （履歴を切り替えても、表示中の会話と Dify 側の会話がずれないようにするため）
 export function createDifyChatService(): ChatService {
-  let conversationId = '';
-
   return {
     async sendMessage(userMessage: string, options: ChatSendOptions): Promise<void> {
       const { onTypingStart, onMessage, onError } = options;
+      let conversationId = options.conversationId ?? '';
 
       try {
         onTypingStart?.();
@@ -96,8 +96,7 @@ export function createDifyChatService(): ChatService {
           result = await send();
         }
 
-        conversationId = result.conversation_id;
-        onMessage?.(createMessage('assistant', result.answer));
+        onMessage?.(createMessage('assistant', result.answer), result.conversation_id);
       } catch (err) {
         const error = err instanceof Error ? err : new Error('チャットの送信に失敗しました');
         onError?.(error);

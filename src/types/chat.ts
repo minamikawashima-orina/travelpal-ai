@@ -13,10 +13,12 @@ export interface ChatMessage {
 export interface ChatSendOptions {
   /** 直近の会話履歴（AI側のコンテキストとして利用） */
   history: ChatMessage[];
+  /** 続きを話す Dify の会話ID。新しい会話なら空文字または省略 */
+  conversationId?: string;
   /** 送信中フラグを切り替えるためのコールバック */
   onTypingStart?: () => void;
-  /** AI応答の受信時に呼ばれるコールバック */
-  onMessage?: (message: ChatMessage) => void;
+  /** AI応答の受信時に呼ばれるコールバック（会話IDは次回の送信で使うために保存する） */
+  onMessage?: (message: ChatMessage, conversationId: string) => void;
   /** エラー発生時に呼ばれるコールバック */
   onError?: (error: Error) => void;
 }
