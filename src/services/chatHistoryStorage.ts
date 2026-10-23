@@ -1,6 +1,7 @@
 import type { ChatMessage } from '@/types/chat';
 import type { ChatHistoryState, ChatSession } from '@/types/history';
 import { hasUserMessage } from '@/utils/chatHelpers';
+import { isTravelConditions } from '@/utils/planHelpers';
 
 // 会話履歴を localStorage に保存・復元する処理
 //
@@ -53,7 +54,12 @@ export function loadChatHistory(): ChatHistoryState | null {
     if (data?.version !== STORAGE_VERSION || !Array.isArray(data.sessions)) return null;
 
     // 形の正しくない会話だけを取り除き、残りは復元する
-    const sessions = data.sessions.filter(isChatSession);
+    // 旅行プランの条件が壊れていた場合は、条件だけを捨てて会話は残す
+    const sessions = data.sessions
+      .filter(isChatSession)
+      .map((s) => (s.planConditions === undefined || isTravelConditions(s.planConditions)
+        ? s
+        : { ...s, planConditions: undefined }));
     if (sessions.length === 0) return null;
 
     return {

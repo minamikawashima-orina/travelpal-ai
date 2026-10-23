@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { RefreshCw, SlidersHorizontal } from 'lucide-react';
 import type { ChatMessage } from '@/types/chat';
 import type { ChatHistoryState, ChatSession } from '@/types/history';
+import type { TravelConditions } from '@/types/plan';
 import { createMessage, createSession, createSessionTitle, hasUserMessage } from '@/utils/chatHelpers';
+import { buildPlanRequestMessage, buildPlanRevisionMessage, createPlanTitle } from '@/utils/planHelpers';
 import { defaultChatService, type ChatService } from '@/services/chatService';
 import { loadChatHistory, saveChatHistory } from '@/services/chatHistoryStorage';
 import { ChatMessageBubble } from './ChatMessageBubble';
@@ -10,6 +13,7 @@ import { ExamplePrompts } from './ExamplePrompts';
 import { ChatInputForm } from './ChatInputForm';
 import { ChatHeader } from './ChatHeader';
 import { ChatHistoryPanel } from './ChatHistoryPanel';
+import { PlanConditionsForm } from './PlanConditionsForm';
 
 interface ChatContainerProps {
   // 後から Dify 連携済みのサービスを差し込めるようにしておく
@@ -35,6 +39,7 @@ export function ChatContainer({ chatService = defaultChatService }: ChatContaine
   const [history, setHistory] = useState<ChatHistoryState>(loadInitialHistory);
   const [isSending, setIsSending] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isPlanFormOpen, setIsPlanFormOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const activeSession =
@@ -80,16 +85,18 @@ export function ChatContainer({ chatService = defaultChatService }: ChatContaine
   );
 
   const handleSend = useCallback(
-    async (text: string) => {
+    async (text: string, plan?: { conditions: TravelConditions; title: string }) => {
       if (isSending) return;
 
       const sessionId = activeSession.id;
       const userMessage = createMessage('user', text);
       // 先にユーザー発言を履歴に追加（最初の質問なら会話のタイトルにする）
+      // 条件フォームから送った場合は、その条件も会話と一緒に保存する
       updateSession(sessionId, (s) => ({
         ...s,
-        title: hasUserMessage(s) ? s.title : createSessionTitle(text),
+        title: hasUserMessage(s) ? s.title : (plan?.title ?? createSessionTitle(text)),
         messages: [...s.messages, userMessage],
+        planConditions: plan?.conditions ?? s.planConditions,
         updatedAt: Date.now(),
       }));
 
@@ -161,6 +168,21 @@ export function ChatContainer({ chatService = defaultChatService }: ChatContaine
   );
 
   const closeHistory = useCallback(() => setIsHistoryOpen(false), []);
+  const closePlanForm = useCallback(() => setIsPlanFormOpen(false), []);
+
+  // 条件フォームの送信：初回はプラン作成、前回の条件があれば変更点を添えて再提案を依頼する
+  // 送信は通常のチャットと同じ handleSend を通すので、表示・保存・Dify との通信は共通
+  const handlePlanSubmit = useCallback(
+    (conditions: TravelConditions) => {
+      const previous = activeSession.planConditions;
+      const text = previous
+        ? buildPlanRevisionMessage(previous, conditions)
+        : buildPlanRequestMessage(conditions);
+      setIsPlanFormOpen(false);
+      void handleSend(text, { conditions, title: createPlanTitle(conditions) });
+    },
+    [activeSession.planConditions, handleSend],
+  );
 
   const showExamples = messages.length <= 1 && !isSending;
 
@@ -187,12 +209,23 @@ export function ChatContainer({ chatService = defaultChatService }: ChatContaine
             <p className="mb-2.5 px-1 text-xs font-medium text-slate-500">
               こんな風に聞いてみるのはいかが?
             </p>
-            <ExamplePrompts onSelect={handleSend} disabled={isSending} />
+            <ExamplePrompts onSelect={(prompt) => handleSend(prompt)} disabled={isSending} />
           </div>
         )}
       </div>
 
       <div className="border-t border-slate-100 bg-white/80 px-4 py-3 backdrop-blur-sm sm:px-6 sm:py-4">
+        <div className="mb-2 flex">
+          <button
+            type="button"
+            onClick={() => setIsPlanFormOpen(true)}
+            disabled={isSending}
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-ocean-200 bg-white px-3.5 text-sm font-medium text-ocean-700 transition hover:border-ocean-400 hover:bg-ocean-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {activeSession.planConditions ? <RefreshCw size={15} /> : <SlidersHorizontal size={15} />}
+            {activeSession.planConditions ? '条件を変更して再提案' : '条件を指定してプラン作成'}
+          </button>
+        </div>
         <ChatInputForm onSend={handleSend} disabled={isSending} />
         <p className="mt-1.5 text-center text-[11px] text-slate-400">
           Enterで送信 / Shift + Enterで改行
@@ -208,6 +241,13 @@ export function ChatContainer({ chatService = defaultChatService }: ChatContaine
         onSelect={handleSelectSession}
         onDelete={handleDeleteSession}
         onNewChat={handleNewChat}
+      />
+
+      <PlanConditionsForm
+        open={isPlanFormOpen}
+        previousConditions={activeSession.planConditions}
+        onClose={closePlanForm}
+        onSubmit={handlePlanSubmit}
       />
     </div>
   );
